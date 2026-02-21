@@ -1,0 +1,41 @@
+{
+  "name": "@ssm/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    },
+    "./types": {
+      "types": "./src/types/index.ts",
+      "default": "./dist/types/index.js"
+    },
+    "./schemas": {
+      "types": "./src/schemas/index.ts",
+      "default": "./dist/schemas/index.js"
+    },
+    "./constants": {
+      "types": "./src/constants/index.ts",
+      "default": "./dist/constants/index.js"
+    },
+    "./utils": {
+      "types": "./src/utils/index.ts",
+      "default": "./dist/utils/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo 'no linter configured yet'"
+  },
+  "dependencies": {
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

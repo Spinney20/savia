@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.next/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Turborepo
+.turbo/
+
+# Testing
+coverage/
+
+# Uploads (local storage)
+uploads/
+
+# Docker
+docker/data/
+
+# Drizzle
+apps/api/drizzle/meta/
+
+# Expo
+apps/mobile/.expo/
+
+# Electron
+apps/desktop/release/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*

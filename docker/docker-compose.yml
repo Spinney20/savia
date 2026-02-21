@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ssm-postgres
+    restart: unless-stopped
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_DB: ssm_db
+      POSTGRES_USER: ssm_user
+      POSTGRES_PASSWORD: ssm_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ssm_user -d ssm_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # pgAdmin — optional, uncomment if needed
+  # pgadmin:
+  #   image: dpage/pgadmin4:latest
+  #   container_name: ssm-pgadmin
+  #   restart: unless-stopped
+  #   ports:
+  #     - '5050:80'
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: admin@local.dev
+  #     PGADMIN_DEFAULT_PASSWORD: admin
+  #   depends_on:
+  #     - postgres
+
+  # Redis — not needed for MVP (using @nestjs/schedule instead of BullMQ)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: ssm-redis
+  #   restart: unless-stopped
+  #   ports:
+  #     - '6379:6379'
+
+volumes:
+  pgdata:
