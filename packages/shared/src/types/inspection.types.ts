@@ -58,6 +58,19 @@ export interface InspectionTemplateDto {
   createdAt: string;
 }
 
+export interface InspectionTemplateVersionDto {
+  versionNumber: number;
+  structure: TemplateStructure;
+  changeNotes: string | null;
+  publishedAt: string | null;
+  createdAt: string;
+}
+
+export interface InspectionTemplateDetailDto extends InspectionTemplateDto {
+  currentStructure: TemplateStructure | null;
+  versions: InspectionTemplateVersionDto[];
+}
+
 export interface InspectionDto {
   uuid: string;
   siteUuid: string;
@@ -86,6 +99,14 @@ export interface InspectionItemDto {
   severity: Severity | null;
   riskScore: number | null;
   notes: string | null;
+}
+
+export interface InspectionDetailDto extends InspectionDto {
+  templateUuid: string;
+  templateVersionNumber: number;
+  templateStructure: TemplateStructure;
+  items: InspectionItemDto[];
+  reviews: InspectionReviewDto[];
 }
 
 export interface InspectionReviewDto {

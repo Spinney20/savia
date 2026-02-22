@@ -36,6 +36,14 @@ export const CreateTemplateSchema = z.object({
 });
 export type CreateTemplateInput = z.infer<typeof CreateTemplateSchema>;
 
+export const UpdateTemplateSchema = z.object({
+  name: z.string().min(1).max(255).optional(),
+  description: z.string().nullable().optional(),
+  category: z.string().max(100).nullable().optional(),
+  isActive: z.boolean().optional(),
+});
+export type UpdateTemplateInput = z.infer<typeof UpdateTemplateSchema>;
+
 export const PublishTemplateVersionSchema = z.object({
   structure: TemplateStructureSchema,
   changeNotes: z.string().nullable().optional(),
