@@ -19,3 +19,12 @@ export const ConfirmParticipationSchema = z.object({
   notes: z.string().nullable().optional(),
 });
 export type ConfirmParticipationInput = z.infer<typeof ConfirmParticipationSchema>;
+
+export const UpdateParticipantsSchema = z.object({
+  participants: z.array(z.object({
+    employeeUuid: z.string().uuid(),
+    confirmationMethod: z.enum(['MANUAL', 'ABSENT'] as const),
+    notes: z.string().nullable().optional(),
+  })).min(1),
+});
+export type UpdateParticipantsInput = z.infer<typeof UpdateParticipantsSchema>;

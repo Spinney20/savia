@@ -40,3 +40,9 @@ export interface TrainingParticipantDto {
   confirmedAt: string | null;
   notes: string | null;
 }
+
+export interface TrainingDetailDto extends TrainingDto {
+  latitude: number | null;
+  longitude: number | null;
+  participants: TrainingParticipantDto[];
+}
