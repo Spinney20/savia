@@ -58,3 +58,18 @@ export interface IssueAssignmentDto {
   isActive: boolean;
   assignedAt: string;
 }
+
+export interface IssueStatusHistoryDto {
+  fromStatus: IssueStatus | null;
+  toStatus: IssueStatus;
+  changedByName: string;
+  reason: string | null;
+  changedAt: string;
+}
+
+export interface IssueDetailDto extends IssueReportDto {
+  categoryUuid: string | null;
+  assignments: IssueAssignmentDto[];
+  comments: IssueCommentDto[];
+  statusHistory: IssueStatusHistoryDto[];
+}
