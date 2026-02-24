@@ -23,6 +23,7 @@ import type {
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
+import { ParseUuidPipe } from '../common/pipes/parse-uuid.pipe';
 import { InspectionsService } from './inspections.service';
 
 @Controller('inspections')
@@ -44,7 +45,7 @@ export class InspectionsController {
 
   @Get(':uuid')
   @Roles('SEF_SANTIER')
-  findOne(@CurrentUser() user: AuthUser, @Param('uuid') uuid: string) {
+  findOne(@CurrentUser() user: AuthUser, @Param('uuid', ParseUuidPipe) uuid: string) {
     return this.inspectionsService.findOne(user, uuid);
   }
 
@@ -53,7 +54,7 @@ export class InspectionsController {
   @UsePipes(new ZodValidationPipe(UpdateInspectionDraftSchema))
   updateDraft(
     @CurrentUser() user: AuthUser,
-    @Param('uuid') uuid: string,
+    @Param('uuid', ParseUuidPipe) uuid: string,
     @Body() body: UpdateInspectionDraftInput,
   ) {
     return this.inspectionsService.updateDraft(user, uuid, body);
@@ -62,28 +63,35 @@ export class InspectionsController {
   @Delete(':uuid')
   @Roles('INSPECTOR_SSM')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@CurrentUser() user: AuthUser, @Param('uuid') uuid: string) {
+  async remove(@CurrentUser() user: AuthUser, @Param('uuid', ParseUuidPipe) uuid: string) {
     await this.inspectionsService.remove(user, uuid);
   }
 
   @Post(':uuid/submit')
   @Roles('INSPECTOR_SSM')
   @HttpCode(HttpStatus.OK)
-  submit(@CurrentUser() user: AuthUser, @Param('uuid') uuid: string) {
+  submit(@CurrentUser() user: AuthUser, @Param('uuid', ParseUuidPipe) uuid: string) {
     return this.inspectionsService.submit(user, uuid);
   }
 
   @Post(':uuid/revise')
   @Roles('INSPECTOR_SSM')
   @HttpCode(HttpStatus.OK)
-  revise(@CurrentUser() user: AuthUser, @Param('uuid') uuid: string) {
+  revise(@CurrentUser() user: AuthUser, @Param('uuid', ParseUuidPipe) uuid: string) {
     return this.inspectionsService.revise(user, uuid);
   }
 
   @Post(':uuid/close')
   @Roles('SEF_AGENTIE')
   @HttpCode(HttpStatus.OK)
-  close(@CurrentUser() user: AuthUser, @Param('uuid') uuid: string) {
+  close(@CurrentUser() user: AuthUser, @Param('uuid', ParseUuidPipe) uuid: string) {
     return this.inspectionsService.close(user, uuid);
+  }
+
+  @Get(':uuid/pdf')
+  @Roles('INSPECTOR_SSM')
+  async getPdf(@CurrentUser() user: AuthUser, @Param('uuid', ParseUuidPipe) uuid: string) {
+    const pdfUrl = await this.inspectionsService.getPdf(user, uuid);
+    return { pdfUrl };
   }
 }

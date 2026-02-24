@@ -42,6 +42,27 @@ export interface AttachmentDto {
   createdAt: string;
 }
 
+/** Token pair returned by login, refresh, activate */
+export interface TokenResponse {
+  accessToken: string;
+  refreshToken: string;
+}
+
+/** Response from POST /upload */
+export interface UploadResponse {
+  uuid: string;
+  fileName: string;
+  mimeType: string;
+  fileSize: number;
+}
+
+/** Response from GET /files/:uuid */
+export interface FileMetaResponse {
+  url: string;
+  fileName: string;
+  mimeType: string;
+}
+
 /** Notification DTO */
 export interface NotificationDto {
   uuid: string;

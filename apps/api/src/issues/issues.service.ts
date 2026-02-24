@@ -4,7 +4,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { and, eq, isNull, count, desc, asc } from 'drizzle-orm';
+import { and, eq, isNull, inArray, count, desc, asc } from 'drizzle-orm';
 import type {
   AuthUser,
   IssueReportDto,
@@ -20,6 +20,7 @@ import type {
   PaginatedResponse,
   Severity,
 } from '@ssm/shared';
+import { ISSUE_VALID_TRANSITIONS, isRoleAtLeast } from '@ssm/shared';
 import { DRIZZLE } from '../database/drizzle.provider';
 import type { DrizzleDB } from '../database/drizzle.provider';
 import {
@@ -33,17 +34,8 @@ import {
   employees,
 } from '../database/schema';
 import { parsePaginationQuery, buildPaginationMeta } from '../common/dto/pagination.dto';
+import { getUserSiteIds } from '../common/utils/site-filter.util';
 import { IssueCommentsService } from './issue-comments.service';
-
-const VALID_TRANSITIONS: Record<IssueStatus, IssueStatus[]> = {
-  REPORTED: ['ASSIGNED', 'IN_PROGRESS', 'CLOSED'],
-  ASSIGNED: ['IN_PROGRESS', 'CLOSED'],
-  IN_PROGRESS: ['RESOLVED', 'CLOSED'],
-  RESOLVED: ['VERIFIED', 'REOPENED'],
-  VERIFIED: ['CLOSED'],
-  REOPENED: ['IN_PROGRESS', 'ASSIGNED', 'CLOSED'],
-  CLOSED: ['REOPENED'],
-};
 
 @Injectable()
 export class IssuesService {
@@ -88,6 +80,15 @@ export class IssuesService {
       eq(issueReports.companyId, authUser.companyId),
       isNull(issueReports.deletedAt),
     ];
+
+    // Site-level isolation for roles below SEF_AGENTIE
+    if (!isRoleAtLeast(authUser.role, 'SEF_AGENTIE')) {
+      const siteIds = await getUserSiteIds(this.db, authUser.employeeId);
+      if (siteIds.length === 0) {
+        return { data: [], meta: buildPaginationMeta(0, query) };
+      }
+      baseConditions.push(inArray(issueReports.siteId, siteIds));
+    }
 
     const siteUuid = rawQuery.siteUuid as string | undefined;
     if (siteUuid) {
@@ -272,7 +273,7 @@ export class IssuesService {
     const currentStatus = issue.status as IssueStatus;
     const newStatus = input.status;
 
-    const allowed = VALID_TRANSITIONS[currentStatus];
+    const allowed = ISSUE_VALID_TRANSITIONS[currentStatus];
     if (!allowed || !allowed.includes(newStatus)) {
       throw new BadRequestException(
         `Tranziția de la ${currentStatus} la ${newStatus} nu este permisă`,

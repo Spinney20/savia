@@ -5,7 +5,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
-import { and, eq, isNull, ilike, count, desc } from 'drizzle-orm';
+import { and, eq, isNull, inArray, ilike, count, desc } from 'drizzle-orm';
 import type {
   AuthUser,
   InspectionDto,
@@ -19,7 +19,7 @@ import type {
   InspectionStatus,
   Severity,
 } from '@ssm/shared';
-import { calculateRiskScore, countComplianceStats } from '@ssm/shared';
+import { calculateRiskScore, countComplianceStats, isRoleAtLeast } from '@ssm/shared';
 import { DRIZZLE } from '../database/drizzle.provider';
 import type { DrizzleDB } from '../database/drizzle.provider';
 import {
@@ -33,6 +33,7 @@ import {
   employees,
 } from '../database/schema';
 import { parsePaginationQuery, buildPaginationMeta } from '../common/dto/pagination.dto';
+import { getUserSiteIds } from '../common/utils/site-filter.util';
 
 @Injectable()
 export class InspectionsService {
@@ -52,6 +53,15 @@ export class InspectionsService {
       eq(inspections.companyId, authUser.companyId),
       isNull(inspections.deletedAt),
     ];
+
+    // Site-level isolation for roles below SEF_AGENTIE
+    if (!isRoleAtLeast(authUser.role, 'SEF_AGENTIE')) {
+      const siteIds = await getUserSiteIds(this.db, authUser.employeeId);
+      if (siteIds.length === 0) {
+        return { data: [], meta: buildPaginationMeta(0, query) };
+      }
+      baseConditions.push(inArray(inspections.siteId, siteIds));
+    }
 
     const siteUuid = rawQuery.siteUuid as string | undefined;
     if (siteUuid) {
@@ -419,6 +429,17 @@ export class InspectionsService {
       .where(eq(inspections.id, inspection.id));
 
     return this.findOne(authUser, uuid);
+  }
+
+  // ─── GET PDF ─────────────────────────────────────────────
+  async getPdf(authUser: AuthUser, uuid: string): Promise<string> {
+    const inspection = await this.resolveInspection(authUser, uuid);
+
+    if (!inspection.pdfUrl) {
+      throw new NotFoundException('PDF-ul nu a fost generat încă');
+    }
+
+    return inspection.pdfUrl;
   }
 
   // ─── HELPERS ────────────────────────────────────────────

@@ -18,6 +18,7 @@ import type {
   TrainingType,
   ConfirmationMethod,
 } from '@ssm/shared';
+import { isRoleAtLeast } from '@ssm/shared';
 import { DRIZZLE } from '../database/drizzle.provider';
 import type { DrizzleDB } from '../database/drizzle.provider';
 import {
@@ -28,6 +29,7 @@ import {
   employees,
 } from '../database/schema';
 import { parsePaginationQuery, buildPaginationMeta } from '../common/dto/pagination.dto';
+import { getUserSiteIds } from '../common/utils/site-filter.util';
 
 @Injectable()
 export class TrainingsService {
@@ -47,6 +49,15 @@ export class TrainingsService {
       eq(trainings.companyId, authUser.companyId),
       isNull(trainings.deletedAt),
     ];
+
+    // Site-level isolation for roles below SEF_AGENTIE
+    if (!isRoleAtLeast(authUser.role, 'SEF_AGENTIE')) {
+      const siteIds = await getUserSiteIds(this.db, authUser.employeeId);
+      if (siteIds.length === 0) {
+        return { data: [], meta: buildPaginationMeta(0, query) };
+      }
+      baseConditions.push(inArray(trainings.siteId, siteIds));
+    }
 
     const siteUuid = rawQuery.siteUuid as string | undefined;
     if (siteUuid) {

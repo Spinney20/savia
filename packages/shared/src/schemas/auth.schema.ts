@@ -27,3 +27,9 @@ export const RefreshTokenSchema = z.object({
   refreshToken: z.string().min(1),
 });
 export type RefreshTokenInput = z.infer<typeof RefreshTokenSchema>;
+
+export const ChangePasswordSchema = z.object({
+  currentPassword: z.string().min(8).max(128),
+  newPassword: z.string().min(8).max(128),
+});
+export type ChangePasswordInput = z.infer<typeof ChangePasswordSchema>;

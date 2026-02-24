@@ -1,0 +1,40 @@
+appId: com.savia.ssm
+productName: Savia SSM
+directories:
+  buildResources: resources
+  output: release
+files:
+  - out/**/*
+  - "!out/renderer/**/*"
+extraResources:
+  - from: out/renderer
+    to: renderer
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: resources/icon.ico
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: true
+mac:
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  icon: resources/icon.icns
+  category: public.app-category.business
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+  icon: resources/icon.png
+  category: Office
+publish:
+  provider: github
+  owner: Spinney20
+  repo: savia

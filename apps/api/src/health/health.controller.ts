@@ -14,24 +14,21 @@ export class HealthController {
     return {
       status: 'ok',
       timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
     };
   }
 
   @Get('db')
   async checkDb() {
     try {
-      const result = await this.db.execute(sql`SELECT NOW() as now`);
+      await this.db.execute(sql`SELECT 1`);
       return {
         status: 'ok',
         database: 'connected',
-        serverTime: result[0]?.now,
       };
-    } catch (error) {
+    } catch {
       return {
         status: 'error',
         database: 'disconnected',
-        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }

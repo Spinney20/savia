@@ -25,6 +25,7 @@ import type {
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
+import { ParseUuidPipe } from '../common/pipes/parse-uuid.pipe';
 import { IssuesService } from './issues.service';
 
 @Controller('issues')
@@ -52,7 +53,7 @@ export class IssuesController {
 
   @Get(':uuid')
   @Roles('MUNCITOR')
-  findOne(@CurrentUser() user: AuthUser, @Param('uuid') uuid: string) {
+  findOne(@CurrentUser() user: AuthUser, @Param('uuid', ParseUuidPipe) uuid: string) {
     return this.issuesService.findOne(user, uuid);
   }
 
@@ -61,7 +62,7 @@ export class IssuesController {
   @UsePipes(new ZodValidationPipe(UpdateIssueStatusSchema))
   updateStatus(
     @CurrentUser() user: AuthUser,
-    @Param('uuid') uuid: string,
+    @Param('uuid', ParseUuidPipe) uuid: string,
     @Body() body: UpdateIssueStatusInput,
   ) {
     return this.issuesService.updateStatus(user, uuid, body);
@@ -72,7 +73,7 @@ export class IssuesController {
   @UsePipes(new ZodValidationPipe(AssignIssueSchema))
   assign(
     @CurrentUser() user: AuthUser,
-    @Param('uuid') uuid: string,
+    @Param('uuid', ParseUuidPipe) uuid: string,
     @Body() body: AssignIssueInput,
   ) {
     return this.issuesService.assign(user, uuid, body);
@@ -81,7 +82,7 @@ export class IssuesController {
   @Delete(':uuid')
   @Roles('MANAGER_SSM')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@CurrentUser() user: AuthUser, @Param('uuid') uuid: string) {
+  async remove(@CurrentUser() user: AuthUser, @Param('uuid', ParseUuidPipe) uuid: string) {
     await this.issuesService.remove(user, uuid);
   }
 }

@@ -24,6 +24,7 @@ import {
   inspectionTemplateVersions,
   inspections,
 } from '../database/schema';
+import { escapeLike } from '../common/utils/query.util';
 import { parsePaginationQuery, buildPaginationMeta } from '../common/dto/pagination.dto';
 
 @Injectable()
@@ -49,7 +50,7 @@ export class InspectionTemplatesService {
     if (query.search) {
       searchWhere = and(
         baseWhere,
-        ilike(inspectionTemplates.name, `%${query.search}%`),
+        ilike(inspectionTemplates.name, `%${escapeLike(query.search)}%`),
       );
     }
 

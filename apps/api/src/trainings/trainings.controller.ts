@@ -25,6 +25,7 @@ import type {
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
+import { ParseUuidPipe } from '../common/pipes/parse-uuid.pipe';
 import { TrainingsService } from './trainings.service';
 
 @Controller('trainings')
@@ -46,14 +47,14 @@ export class TrainingsController {
 
   @Get(':uuid')
   @Roles('SEF_SANTIER')
-  findOne(@CurrentUser() user: AuthUser, @Param('uuid') uuid: string) {
+  findOne(@CurrentUser() user: AuthUser, @Param('uuid', ParseUuidPipe) uuid: string) {
     return this.trainingsService.findOne(user, uuid);
   }
 
   @Delete(':uuid')
   @Roles('MANAGER_SSM')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@CurrentUser() user: AuthUser, @Param('uuid') uuid: string) {
+  async remove(@CurrentUser() user: AuthUser, @Param('uuid', ParseUuidPipe) uuid: string) {
     await this.trainingsService.remove(user, uuid);
   }
 
@@ -63,7 +64,7 @@ export class TrainingsController {
   @UsePipes(new ZodValidationPipe(ConfirmParticipationSchema))
   confirm(
     @CurrentUser() user: AuthUser,
-    @Param('uuid') uuid: string,
+    @Param('uuid', ParseUuidPipe) uuid: string,
     @Body() body: ConfirmParticipationInput,
   ) {
     return this.trainingsService.confirm(user, uuid, body);
@@ -74,7 +75,7 @@ export class TrainingsController {
   @UsePipes(new ZodValidationPipe(UpdateParticipantsSchema))
   updateParticipants(
     @CurrentUser() user: AuthUser,
-    @Param('uuid') uuid: string,
+    @Param('uuid', ParseUuidPipe) uuid: string,
     @Body() body: UpdateParticipantsInput,
   ) {
     return this.trainingsService.updateParticipants(user, uuid, body);
@@ -82,7 +83,7 @@ export class TrainingsController {
 
   @Get(':uuid/pdf')
   @Roles('INSPECTOR_SSM')
-  getPdf(@CurrentUser() user: AuthUser, @Param('uuid') uuid: string) {
+  getPdf(@CurrentUser() user: AuthUser, @Param('uuid', ParseUuidPipe) uuid: string) {
     return this.trainingsService.getPdf(user, uuid);
   }
 }

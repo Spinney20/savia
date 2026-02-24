@@ -14,6 +14,7 @@ import type { AuthUser, AssignEmployeeToSiteInput } from '@ssm/shared';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
+import { ParseUuidPipe } from '../common/pipes/parse-uuid.pipe';
 import { EmployeeAssignmentsService } from './employee-assignments.service';
 
 @Controller('employees/:uuid/sites')
@@ -22,7 +23,7 @@ export class EmployeeAssignmentsController {
 
   @Get()
   @Roles('SEF_SANTIER')
-  list(@CurrentUser() user: AuthUser, @Param('uuid') uuid: string) {
+  list(@CurrentUser() user: AuthUser, @Param('uuid', ParseUuidPipe) uuid: string) {
     return this.assignmentsService.list(user, uuid);
   }
 
@@ -31,7 +32,7 @@ export class EmployeeAssignmentsController {
   @UsePipes(new ZodValidationPipe(AssignEmployeeToSiteSchema))
   assign(
     @CurrentUser() user: AuthUser,
-    @Param('uuid') uuid: string,
+    @Param('uuid', ParseUuidPipe) uuid: string,
     @Body() body: AssignEmployeeToSiteInput,
   ) {
     return this.assignmentsService.assign(user, uuid, body);
@@ -42,7 +43,7 @@ export class EmployeeAssignmentsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async unassign(
     @CurrentUser() user: AuthUser,
-    @Param('uuid') uuid: string,
+    @Param('uuid', ParseUuidPipe) uuid: string,
     @Param('siteUuid') siteUuid: string,
   ) {
     await this.assignmentsService.unassign(user, uuid, siteUuid);

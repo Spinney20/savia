@@ -4,7 +4,8 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { and, eq, isNull, isNotNull } from 'drizzle-orm';
-import type { AuthUser, AuthMeResponse, Role } from '@ssm/shared';
+import type { AuthUser, AuthMeResponse, Role, ChangePasswordInput, TokenResponse } from '@ssm/shared';
+import { EmailService } from '../email/email.service';
 import { canUserAccess } from '@ssm/shared';
 import { DRIZZLE } from '../database/drizzle.provider';
 import type { DrizzleDB } from '../database/drizzle.provider';
@@ -18,7 +19,6 @@ import {
   sites,
   appSettings,
 } from '../database/schema';
-import type { TokenResponse } from './dto/token-response.dto';
 
 const BCRYPT_ROUNDS = 12;
 const RESOURCES = [
@@ -33,6 +33,7 @@ export class AuthService {
     @Inject(DRIZZLE) private readonly db: DrizzleDB,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
+    private readonly emailService: EmailService,
   ) {}
 
   // ─── LOGIN ──────────────────────────────────────────────
@@ -90,25 +91,51 @@ export class AuthService {
       throw new UnauthorizedException('Contul este dezactivat sau nu există');
     }
 
-    // Revoke old token
-    await this.db.update(refreshTokens)
-      .set({ revokedAt: new Date() })
-      .where(eq(refreshTokens.id, storedToken.id));
+    // Atomic revoke + reissue inside a transaction to prevent race conditions
+    return this.db.transaction(async (tx) => {
+      // Attempt to revoke — use revokedAt IS NULL to prevent concurrent double-use
+      const revoked = await tx.update(refreshTokens)
+        .set({ revokedAt: new Date() })
+        .where(and(eq(refreshTokens.id, storedToken.id), isNull(refreshTokens.revokedAt)))
+        .returning({ id: refreshTokens.id });
 
-    // Issue new pair and link replacement
-    const tokenPair = await this.issueTokenPair(user);
-    const newTokenHash = this.hashToken(tokenPair.refreshToken);
+      if (revoked.length === 0) {
+        // Another concurrent request already revoked this token
+        throw new UnauthorizedException('Token de refresh deja utilizat');
+      }
 
-    const newStoredToken = await this.db.query.refreshTokens.findFirst({
-      where: eq(refreshTokens.tokenHash, newTokenHash),
+      // Issue new pair inside the transaction
+      const jwtPayload = {
+        sub: user.uuid,
+        userId: user.id,
+        employeeId: user.employeeId,
+        companyId: user.companyId,
+        role: user.role,
+        email: user.email,
+      };
+      const accessToken = this.jwtService.sign(jwtPayload, {
+        expiresIn: this.config.get('JWT_ACCESS_EXPIRES_IN', '15m'),
+      });
+
+      const rawRefreshToken = crypto.randomBytes(32).toString('hex');
+      const newTokenHash = this.hashToken(rawRefreshToken);
+      const refreshExpiry = this.config.get('JWT_REFRESH_EXPIRES_IN', '7d');
+      const expiresAt = new Date(Date.now() + this.parseDuration(refreshExpiry));
+
+      const [newStoredToken] = await tx.insert(refreshTokens).values({
+        userId: user.id,
+        tokenHash: newTokenHash,
+        expiresAt,
+      }).returning({ id: refreshTokens.id });
+
+      if (newStoredToken) {
+        await tx.update(refreshTokens)
+          .set({ replacedBy: newStoredToken.id })
+          .where(eq(refreshTokens.id, storedToken.id));
+      }
+
+      return { accessToken, refreshToken: rawRefreshToken };
     });
-    if (newStoredToken) {
-      await this.db.update(refreshTokens)
-        .set({ replacedBy: newStoredToken.id })
-        .where(eq(refreshTokens.id, storedToken.id));
-    }
-
-    return tokenPair;
   }
 
   // ─── LOGOUT ─────────────────────────────────────────────
@@ -230,11 +257,38 @@ export class AuthService {
       { expiresIn: '1h' },
     );
 
-    // MVP: log to console instead of sending email
-    console.log('───────────────────────────────────────');
-    console.log(`Link resetare parolă pentru ${email}:`);
-    console.log(`${this.config.get('APP_URL')}/reset-password?token=${resetToken}`);
-    console.log('───────────────────────────────────────');
+    const resetUrl = `${this.config.get('APP_URL')}/reset-password?token=${resetToken}`;
+
+    await this.emailService.send({
+      to: email,
+      subject: 'Resetare parolă — SSM',
+      text: `Ați solicitat resetarea parolei.\n\nAccesați linkul următor pentru a reseta parola:\n${resetUrl}\n\nLinkul expiră în 1 oră.`,
+      html: `<p>Ați solicitat resetarea parolei.</p><p><a href="${resetUrl}">Click aici pentru a reseta parola</a></p><p>Linkul expiră în 1 oră.</p>`,
+    });
+  }
+
+  // ─── CHANGE PASSWORD ─────────────────────────────────
+  async changePassword(authUser: AuthUser, input: ChangePasswordInput): Promise<void> {
+    const user = await this.db.query.users.findFirst({
+      where: and(eq(users.id, authUser.userId), isNull(users.deletedAt)),
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Utilizatorul nu a fost găsit');
+    }
+
+    const currentValid = await bcrypt.compare(input.currentPassword, user.passwordHash);
+    if (!currentValid) {
+      throw new BadRequestException('Parola curentă este incorectă');
+    }
+
+    const passwordHash = await bcrypt.hash(input.newPassword, BCRYPT_ROUNDS);
+    await this.db.update(users)
+      .set({ passwordHash })
+      .where(eq(users.id, user.id));
+
+    // Revoke all refresh tokens — force re-login on all devices
+    await this.revokeAllUserTokens(user.id);
   }
 
   // ─── RESET PASSWORD ────────────────────────────────────
@@ -281,7 +335,6 @@ export class AuthService {
       expiresIn: this.config.get('JWT_ACCESS_EXPIRES_IN', '15m'),
     });
 
-    // Raw refresh token = 32 random bytes → hex
     const rawRefreshToken = crypto.randomBytes(32).toString('hex');
     const tokenHash = this.hashToken(rawRefreshToken);
 

@@ -4,6 +4,7 @@ import type { AuthUser, CreateEmployeeDocumentInput } from '@ssm/shared';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
+import { ParseUuidPipe } from '../common/pipes/parse-uuid.pipe';
 import { EmployeeDocumentsService } from './employee-documents.service';
 
 @Controller('employees/:uuid/documents')
@@ -12,7 +13,7 @@ export class EmployeeDocumentsController {
 
   @Get()
   @Roles('SEF_SANTIER')
-  list(@CurrentUser() user: AuthUser, @Param('uuid') uuid: string) {
+  list(@CurrentUser() user: AuthUser, @Param('uuid', ParseUuidPipe) uuid: string) {
     return this.documentsService.list(user, uuid);
   }
 
@@ -21,7 +22,7 @@ export class EmployeeDocumentsController {
   @UsePipes(new ZodValidationPipe(CreateEmployeeDocumentSchema))
   create(
     @CurrentUser() user: AuthUser,
-    @Param('uuid') uuid: string,
+    @Param('uuid', ParseUuidPipe) uuid: string,
     @Body() body: CreateEmployeeDocumentInput,
   ) {
     return this.documentsService.create(user, uuid, body);

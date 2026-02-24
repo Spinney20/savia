@@ -39,3 +39,14 @@ export const EMPLOYEE_STATUS_LABELS_RO: Record<EmployeeStatus, string> = {
   SUSPENDED: 'Suspendat',
   TERMINATED: 'Încetat',
 };
+
+/** Valid issue status transitions — single source of truth for API + clients */
+export const ISSUE_VALID_TRANSITIONS: Record<IssueStatus, IssueStatus[]> = {
+  REPORTED: ['ASSIGNED', 'IN_PROGRESS', 'CLOSED'],
+  ASSIGNED: ['IN_PROGRESS', 'CLOSED'],
+  IN_PROGRESS: ['RESOLVED', 'CLOSED'],
+  RESOLVED: ['VERIFIED', 'REOPENED'],
+  VERIFIED: ['CLOSED'],
+  REOPENED: ['IN_PROGRESS', 'ASSIGNED', 'CLOSED'],
+  CLOSED: ['REOPENED'],
+};

@@ -59,7 +59,7 @@ export const attachments = pgTable(
         (CASE WHEN ${table.issueReportId} IS NOT NULL THEN 1 ELSE 0 END) +
         (CASE WHEN ${table.issueCommentId} IS NOT NULL THEN 1 ELSE 0 END) +
         (CASE WHEN ${table.employeeDocumentId} IS NOT NULL THEN 1 ELSE 0 END)
-      ) = 1`,
+      ) <= 1`,
     ),
   ],
 );

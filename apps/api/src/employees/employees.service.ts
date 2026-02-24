@@ -1,6 +1,7 @@
 import {
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
   ConflictException,
   BadRequestException,
@@ -22,6 +23,7 @@ import { DRIZZLE } from '../database/drizzle.provider';
 import type { DrizzleDB } from '../database/drizzle.provider';
 import { employees, users, companies } from '../database/schema';
 import { encryptCnp, hashCnp } from '../common/utils/crypto.util';
+import { escapeLike } from '../common/utils/query.util';
 import { parsePaginationQuery, buildPaginationMeta } from '../common/dto/pagination.dto';
 import type { PaginationQuery } from '../common/dto/pagination.dto';
 
@@ -29,6 +31,8 @@ const BCRYPT_ROUNDS = 12;
 
 @Injectable()
 export class EmployeesService {
+  private readonly logger = new Logger(EmployeesService.name);
+
   constructor(
     @Inject(DRIZZLE) private readonly db: DrizzleDB,
     private readonly config: ConfigService,
@@ -52,8 +56,8 @@ export class EmployeesService {
       ? and(
           baseWhere,
           or(
-            ilike(employees.firstName, `%${query.search}%`),
-            ilike(employees.lastName, `%${query.search}%`),
+            ilike(employees.firstName, `%${escapeLike(query.search)}%`),
+            ilike(employees.lastName, `%${escapeLike(query.search)}%`),
           ),
         )
       : baseWhere;
@@ -294,11 +298,7 @@ export class EmployeesService {
       { expiresIn: '48h' },
     );
 
-    const appUrl = this.config.get('APP_URL', 'http://localhost:3000');
-    console.log('───────────────────────────────────────');
-    console.log(`Link activare cont pentru ${input.email}:`);
-    console.log(`${appUrl}/activate?token=${activationToken}`);
-    console.log('───────────────────────────────────────');
+    this.logger.log(`Cont creat pentru ${input.email} — link de activare generat`);
 
     return { message: `Cont creat pentru ${input.email}. Link-ul de activare a fost generat.` };
   }

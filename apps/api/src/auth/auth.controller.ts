@@ -1,10 +1,12 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, UsePipes } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   LoginSchema,
   RefreshTokenSchema,
   ActivateAccountSchema,
   ForgotPasswordSchema,
   ResetPasswordSchema,
+  ChangePasswordSchema,
 } from '@ssm/shared';
 import type {
   LoginInput,
@@ -12,8 +14,10 @@ import type {
   ActivateAccountInput,
   ForgotPasswordInput,
   ResetPasswordInput,
+  ChangePasswordInput,
   AuthUser,
 } from '@ssm/shared';
+import { Roles } from '../common/decorators/roles.decorator';
 import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
@@ -26,6 +30,7 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @UsePipes(new ZodValidationPipe(LoginSchema))
   login(@Body() body: LoginInput) {
     return this.authService.login(body.email, body.password);
@@ -34,6 +39,7 @@ export class AuthController {
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
   @UsePipes(new ZodValidationPipe(RefreshTokenSchema))
   refresh(@Body() body: RefreshTokenInput) {
     return this.authService.refresh(body.refreshToken);
@@ -58,9 +64,19 @@ export class AuthController {
     return this.authService.activate(body.token, body.password);
   }
 
+  @Post('change-password')
+  @Roles('MUNCITOR')
+  @HttpCode(HttpStatus.OK)
+  @UsePipes(new ZodValidationPipe(ChangePasswordSchema))
+  async changePassword(@CurrentUser() user: AuthUser, @Body() body: ChangePasswordInput) {
+    await this.authService.changePassword(user, body);
+    return { message: 'Parola a fost schimbată cu succes. Vă rugăm să vă autentificați din nou.' };
+  }
+
   @Public()
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { ttl: 60_000, limit: 3 } })
   @UsePipes(new ZodValidationPipe(ForgotPasswordSchema))
   async forgotPassword(@Body() body: ForgotPasswordInput) {
     await this.authService.forgotPassword(body.email);
@@ -70,6 +86,7 @@ export class AuthController {
   @Public()
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @UsePipes(new ZodValidationPipe(ResetPasswordSchema))
   async resetPassword(@Body() body: ResetPasswordInput) {
     await this.authService.resetPassword(body.token, body.password);

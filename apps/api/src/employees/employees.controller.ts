@@ -25,6 +25,7 @@ import type {
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
+import { ParseUuidPipe } from '../common/pipes/parse-uuid.pipe';
 import { EmployeesService } from './employees.service';
 
 @Controller('employees')
@@ -46,7 +47,7 @@ export class EmployeesController {
 
   @Get(':uuid')
   @Roles('SEF_SANTIER')
-  findOne(@CurrentUser() user: AuthUser, @Param('uuid') uuid: string) {
+  findOne(@CurrentUser() user: AuthUser, @Param('uuid', ParseUuidPipe) uuid: string) {
     return this.employeesService.findOne(user, uuid);
   }
 
@@ -55,7 +56,7 @@ export class EmployeesController {
   @UsePipes(new ZodValidationPipe(UpdateEmployeeSchema))
   update(
     @CurrentUser() user: AuthUser,
-    @Param('uuid') uuid: string,
+    @Param('uuid', ParseUuidPipe) uuid: string,
     @Body() body: UpdateEmployeeInput,
   ) {
     return this.employeesService.update(user, uuid, body);
@@ -64,7 +65,7 @@ export class EmployeesController {
   @Delete(':uuid')
   @Roles('SEF_AGENTIE')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@CurrentUser() user: AuthUser, @Param('uuid') uuid: string) {
+  async remove(@CurrentUser() user: AuthUser, @Param('uuid', ParseUuidPipe) uuid: string) {
     await this.employeesService.remove(user, uuid);
   }
 
@@ -73,7 +74,7 @@ export class EmployeesController {
   @UsePipes(new ZodValidationPipe(CreateUserForEmployeeSchema))
   createUser(
     @CurrentUser() user: AuthUser,
-    @Param('uuid') uuid: string,
+    @Param('uuid', ParseUuidPipe) uuid: string,
     @Body() body: CreateUserForEmployeeInput,
   ) {
     return this.employeesService.createUserAccount(user, uuid, body);

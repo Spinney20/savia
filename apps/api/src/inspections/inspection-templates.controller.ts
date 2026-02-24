@@ -25,6 +25,7 @@ import type {
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
+import { ParseUuidPipe } from '../common/pipes/parse-uuid.pipe';
 import { InspectionTemplatesService } from './inspection-templates.service';
 
 @Controller('inspection-templates')
@@ -46,7 +47,7 @@ export class InspectionTemplatesController {
 
   @Get(':uuid')
   @Roles('SEF_SANTIER')
-  findOne(@CurrentUser() user: AuthUser, @Param('uuid') uuid: string) {
+  findOne(@CurrentUser() user: AuthUser, @Param('uuid', ParseUuidPipe) uuid: string) {
     return this.templatesService.findOne(user, uuid);
   }
 
@@ -55,7 +56,7 @@ export class InspectionTemplatesController {
   @UsePipes(new ZodValidationPipe(UpdateTemplateSchema))
   update(
     @CurrentUser() user: AuthUser,
-    @Param('uuid') uuid: string,
+    @Param('uuid', ParseUuidPipe) uuid: string,
     @Body() body: UpdateTemplateInput,
   ) {
     return this.templatesService.update(user, uuid, body);
@@ -64,7 +65,7 @@ export class InspectionTemplatesController {
   @Delete(':uuid')
   @Roles('MANAGER_SSM')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@CurrentUser() user: AuthUser, @Param('uuid') uuid: string) {
+  async remove(@CurrentUser() user: AuthUser, @Param('uuid', ParseUuidPipe) uuid: string) {
     await this.templatesService.remove(user, uuid);
   }
 
@@ -73,7 +74,7 @@ export class InspectionTemplatesController {
   @UsePipes(new ZodValidationPipe(PublishTemplateVersionSchema))
   publishVersion(
     @CurrentUser() user: AuthUser,
-    @Param('uuid') uuid: string,
+    @Param('uuid', ParseUuidPipe) uuid: string,
     @Body() body: PublishTemplateVersionInput,
   ) {
     return this.templatesService.publishVersion(user, uuid, body);
